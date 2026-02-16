@@ -22,7 +22,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pymysql pandas duckdb python-dotenv
+          pip install pymysql pandas duckdb python-dotenv requests
         
       - name: Run data pipeline
         env:
