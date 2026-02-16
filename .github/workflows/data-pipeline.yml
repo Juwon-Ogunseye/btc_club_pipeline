@@ -26,12 +26,10 @@ jobs:
         
       - name: Run data pipeline
         env:
-          # MotherDuck token (you already have this)
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          # MySQL credentials - ADD THESE TO GITHUB SECRETS
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           ENDPOINT: ${{ secrets.ENDPOINT }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          # USER and DBNAME are hardcoded in script
         run: python main.py
         
       - name: Check for changes
