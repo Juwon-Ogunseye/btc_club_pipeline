@@ -23,7 +23,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pymysql pandas duckdb python-dotenv requests
-        
+      
+      - name: Add GitHub Actions IP to RDS Security Group
+        run: |
+          MY_IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 authorize-security-group-ingress \
+            --group-id sg-0b0b2e2d8c25693d2 \
+            --protocol tcp \
+            --port 3306 \
+            --cidr $MY_IP/32
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
+
       - name: Run data pipeline
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
@@ -31,6 +44,20 @@ jobs:
           ENDPOINT: ${{ secrets.ENDPOINT }}
           PASSWORD: ${{ secrets.PASSWORD }}
         run: python main.py
+
+      - name: Remove GitHub Actions IP from RDS Security Group
+        if: always()
+        run: |
+          MY_IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 revoke-security-group-ingress \
+            --group-id sg-0b0b2e2d8c25693d2 \
+            --protocol tcp \
+            --port 3306 \
+            --cidr $MY_IP/32
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
         
       - name: Check for changes
         id: git-check

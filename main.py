@@ -4,16 +4,14 @@ import duckdb as db
 import os
 import traceback
 import requests
+import logging
 from dotenv import load_dotenv
-
+from datetime import datetime
 load_dotenv()
 required_vars = ['MOTHERDUCK_TOKEN', 'ENDPOINT', 'PASSWORD', 'DISCORD_WEBHOOK']
 missing = [var for var in required_vars if not os.getenv(var)]
 if missing:
     raise RuntimeError(f"Missing required env vars: {missing}")
-import os
-import requests
-
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 
 if DISCORD_WEBHOOK:
@@ -33,7 +31,7 @@ MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 ENDPOINT = os.getenv("ENDPOINT")
 PORT = 3306
-USER = "analytics_ro"  # os.getenv("USER")
+USER = "analytics_ro"  # Hardcoded user
 PASSWORD = os.getenv("PASSWORD")
 DBNAME = "btcdb"
 
@@ -56,6 +54,22 @@ PRIMARY_KEYS = {
 tables_to_pull = list(PRIMARY_KEYS.keys())
 
 # -----------------------------
+# Logging Setup
+# -----------------------------
+LOG_DIR = "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+log_filename = os.path.join(LOG_DIR, f"etl_{datetime.now().strftime('%Y-%m-%d')}.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(log_filename),
+        logging.StreamHandler()
+    ]
+)
+
+# -----------------------------
 # Discord Helper
 # -----------------------------
 def send_discord_alert(message):
@@ -63,18 +77,21 @@ def send_discord_alert(message):
     try:
         r = requests.post(DISCORD_WEBHOOK, json=payload)
         if r.status_code != 204:
-            print(f"⚠️ Failed to send Discord alert: {r.status_code} {r.text}")
+            logging.warning(f"Failed to send Discord alert: {r.status_code} {r.text}")
     except Exception as e:
-        print(f"⚠️ Exception sending Discord alert: {e}")
+        logging.error(f"Exception sending Discord alert: {e}")
 
+# -----------------------------
+# ETL Pipeline
+# -----------------------------
 conn = None
 duck_con = None
 summary_messages = []
 
 try:
-    print("🔌 Connecting to MotherDuck...")
+    logging.info("🔌 Connecting to MotherDuck...")
     duck_con = db.connect("md:btc_analytics")
-    print("✅ Connected to MotherDuck")
+    logging.info("✅ Connected to MotherDuck")
 
     conn = pymysql.connect(
         host=ENDPOINT,
@@ -83,57 +100,46 @@ try:
         database=DBNAME,
         port=PORT
     )
-    print("✅ Connected to MySQL")
+    logging.info("✅ Connected to MySQL")
 
-    # -----------------------------
-    # Loop Through Tables
-    # -----------------------------
     for table in tables_to_pull:
-        print(f"\n⬇️  Pulling '{table}' from MySQL...")
-
+        logging.info(f"⬇️ Pulling '{table}' from MySQL...")
         try:
             df = pd.read_sql(f"SELECT * FROM `{table}`", conn)
         except Exception as e:
             msg = f"❌ Failed to pull '{table}': {e}"
-            print(msg)
+            logging.error(msg)
             summary_messages.append(msg)
             continue
 
         if df.empty:
             msg = f"⚠️ '{table}' is empty, skipping..."
-            print(msg)
+            logging.warning(msg)
             summary_messages.append(msg)
             continue
 
         duck_con.register("tmp_df", df)
 
-        # -----------------------------
         # Check if table exists in MotherDuck
-        # -----------------------------
         try:
             duck_con.execute(f'SELECT 1 FROM "{table}" LIMIT 1')
             table_exists = True
         except Exception:
             table_exists = False
 
-        # -----------------------------
-        # Create Table if Missing
-        # -----------------------------
+        # Create table if missing
         if not table_exists:
             duck_con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM tmp_df')
             msg = f"🎉 Table '{table}' created with {len(df)} rows"
-            print(msg)
+            logging.info(msg)
             summary_messages.append(msg)
             continue
 
-        # -----------------------------
-        # Incremental Load
-        # -----------------------------
+        # Incremental load
         pk_column = PRIMARY_KEYS.get(table)
-
         if not pk_column or pk_column not in df.columns:
             msg = f"⚠️ No valid primary key found for '{table}', skipping incremental load"
-            print(msg)
+            logging.warning(msg)
             summary_messages.append(msg)
             continue
 
@@ -141,7 +147,7 @@ try:
             existing_keys = duck_con.execute(f'SELECT "{pk_column}" FROM "{table}"').df()
         except Exception as e:
             msg = f"❌ Failed fetching existing keys for '{table}': {e}"
-            print(msg)
+            logging.error(msg)
             summary_messages.append(msg)
             continue
 
@@ -149,24 +155,22 @@ try:
 
         if new_rows.empty:
             msg = f"✅ No new rows to insert into '{table}'"
-            print(msg)
+            logging.info(msg)
             summary_messages.append(msg)
             continue
 
         duck_con.register("new_rows", new_rows)
         duck_con.execute(f'INSERT INTO "{table}" SELECT * FROM new_rows')
         msg = f"⬆️ Inserted {len(new_rows)} new rows into '{table}'"
-        print(msg)
+        logging.info(msg)
         summary_messages.append(msg)
 
-    # -----------------------------
-    # Send Success Discord Alert
-    # -----------------------------
+    # Send Discord summary alert
     send_discord_alert(f"✅ ETL Job Completed Successfully!\n\n" + "\n".join(summary_messages))
 
 except Exception as e:
     error_details = traceback.format_exc()
-    print(f"❌ Database connection or extraction failed: {e}")
+    logging.error(f"❌ Database connection or extraction failed: {e}")
     send_discord_alert(f"❌ ETL Job Failed!\n```{error_details}```")
 
 finally:
