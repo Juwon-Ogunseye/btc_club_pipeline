@@ -31,7 +31,7 @@ MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 ENDPOINT = os.getenv("ENDPOINT")
 PORT = 3306
-USER = "analytics_ro"  # Hardcoded user
+USER = "analytics_ro"
 PASSWORD = os.getenv("PASSWORD")
 DBNAME = "btcdb"
 
@@ -135,6 +135,21 @@ try:
             summary_messages.append(msg)
             continue
 
+        # Check for schema mismatch
+        existing_columns = duck_con.execute(f'SELECT * FROM "{table}" LIMIT 0').df().columns.tolist()
+        source_columns = df.columns.tolist()
+
+        if set(existing_columns) != set(source_columns):
+            msg = f"⚠️ Schema mismatch on '{table}', recreating table..."
+            logging.warning(msg)
+            summary_messages.append(msg)
+            duck_con.execute(f'DROP TABLE "{table}"')
+            duck_con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM tmp_df')
+            msg = f"🔄 Table '{table}' recreated with {len(df)} rows and updated schema"
+            logging.info(msg)
+            summary_messages.append(msg)
+            continue
+
         # Incremental load
         pk_column = PRIMARY_KEYS.get(table)
         if not pk_column or pk_column not in df.columns:
@@ -165,7 +180,6 @@ try:
         logging.info(msg)
         summary_messages.append(msg)
 
-    # Send Discord summary alert
     send_discord_alert(f"✅ ETL Job Completed Successfully!\n\n" + "\n".join(summary_messages))
 
 except Exception as e:
