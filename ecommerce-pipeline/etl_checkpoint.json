@@ -1,0 +1,390 @@
+{
+  "account_holder": {
+    "last_updated": "2026-05-21T16:39:12.287609",
+    "status": "completed"
+  },
+  "customer_account_holder": {
+    "last_updated": "2026-05-21T16:39:18.195280",
+    "status": "completed"
+  },
+  "customer_group": {
+    "last_updated": "2026-05-21T16:39:21.503913",
+    "status": "completed"
+  },
+  "customer_group_customer": {
+    "last_updated": "2026-05-21T16:39:22.929891",
+    "status": "completed"
+  },
+  "user_preference": {
+    "last_updated": "2026-05-21T16:39:26.775294",
+    "status": "completed"
+  },
+  "user_rbac_role": {
+    "last_updated": "2026-05-21T16:39:28.073322",
+    "status": "completed"
+  },
+  "card": {
+    "last_updated": "2026-05-21T16:39:40.177022",
+    "status": "completed"
+  },
+  "order": {
+    "last_updated": "2026-05-21T16:39:44.205991",
+    "status": "completed"
+  },
+  "order_address": {
+    "last_updated": "2026-05-21T16:39:45.701077",
+    "status": "completed"
+  },
+  "order_cart": {
+    "last_updated": "2026-05-21T16:39:46.994569",
+    "status": "completed"
+  },
+  "order_change": {
+    "last_updated": "2026-05-21T16:39:48.876123",
+    "status": "completed"
+  },
+  "order_change_action": {
+    "last_updated": "2026-05-21T16:39:50.496919",
+    "status": "completed"
+  },
+  "order_claim": {
+    "last_updated": "2026-05-21T16:39:51.877053",
+    "status": "completed"
+  },
+  "order_claim_item": {
+    "last_updated": "2026-05-21T16:39:53.243397",
+    "status": "completed"
+  },
+  "order_claim_item_image": {
+    "last_updated": "2026-05-21T16:39:54.780773",
+    "status": "completed"
+  },
+  "order_credit_line": {
+    "last_updated": "2026-05-21T16:39:58.026911",
+    "status": "completed"
+  },
+  "order_exchange": {
+    "last_updated": "2026-05-21T16:39:59.303302",
+    "status": "completed"
+  },
+  "order_exchange_item": {
+    "last_updated": "2026-05-21T16:40:00.676958",
+    "status": "completed"
+  },
+  "order_fulfillment": {
+    "last_updated": "2026-05-21T16:40:02.152634",
+    "status": "completed"
+  },
+  "order_item": {
+    "last_updated": "2026-05-21T16:40:03.953768",
+    "status": "completed"
+  },
+  "order_line_item": {
+    "last_updated": "2026-05-21T16:40:05.548614",
+    "status": "completed"
+  },
+  "order_line_item_adjustment": {
+    "last_updated": "2026-05-21T16:40:06.933724",
+    "status": "completed"
+  },
+  "order_line_item_tax_line": {
+    "last_updated": "2026-05-21T16:40:08.308624",
+    "status": "completed"
+  },
+  "order_payment_collection": {
+    "last_updated": "2026-05-21T16:40:09.938479",
+    "status": "completed"
+  },
+  "order_promotion": {
+    "last_updated": "2026-05-21T16:40:11.468844",
+    "status": "completed"
+  },
+  "order_shipping": {
+    "last_updated": "2026-05-21T16:40:12.863224",
+    "status": "completed"
+  },
+  "order_shipping_method": {
+    "last_updated": "2026-05-21T16:40:14.179004",
+    "status": "completed"
+  },
+  "order_shipping_method_adjustment": {
+    "last_updated": "2026-05-21T16:40:16.080697",
+    "status": "completed"
+  },
+  "order_shipping_method_tax_line": {
+    "last_updated": "2026-05-21T16:40:17.489501",
+    "status": "completed"
+  },
+  "order_summary": {
+    "last_updated": "2026-05-21T16:40:18.942213",
+    "status": "completed"
+  },
+  "order_transaction": {
+    "last_updated": "2026-05-21T16:40:20.337920",
+    "status": "completed"
+  },
+  "payment": {
+    "last_updated": "2026-05-21T16:40:22.044169",
+    "status": "completed"
+  },
+  "payment_collection": {
+    "last_updated": "2026-05-21T16:40:23.344209",
+    "status": "completed"
+  },
+  "payment_collection_payment_providers": {
+    "last_updated": "2026-05-21T16:40:24.625050",
+    "status": "completed"
+  },
+  "payment_session": {
+    "last_updated": "2026-05-21T16:40:28.165269",
+    "status": "completed"
+  },
+  "capture": {
+    "last_updated": "2026-05-21T16:40:29.590435",
+    "status": "completed"
+  },
+  "refund": {
+    "last_updated": "2026-05-21T16:40:30.915517",
+    "status": "completed"
+  },
+  "credit_line": {
+    "last_updated": "2026-05-21T16:40:34.302388",
+    "status": "completed"
+  },
+  "cart": {
+    "last_updated": "2026-05-21T16:40:35.611715",
+    "status": "completed"
+  },
+  "cart_address": {
+    "last_updated": "2026-05-21T16:40:37.004990",
+    "status": "completed"
+  },
+  "cart_line_item": {
+    "last_updated": "2026-05-21T16:40:38.408948",
+    "status": "completed"
+  },
+  "cart_line_item_adjustment": {
+    "last_updated": "2026-05-21T16:40:39.780402",
+    "status": "completed"
+  },
+  "cart_line_item_tax_line": {
+    "last_updated": "2026-05-21T16:40:41.373479",
+    "status": "completed"
+  },
+  "cart_payment_collection": {
+    "last_updated": "2026-05-21T16:40:42.724418",
+    "status": "completed"
+  },
+  "cart_promotion": {
+    "last_updated": "2026-05-21T16:40:44.390699",
+    "status": "completed"
+  },
+  "cart_shipping_method": {
+    "last_updated": "2026-05-21T16:40:45.689185",
+    "status": "completed"
+  },
+  "cart_shipping_method_adjustment": {
+    "last_updated": "2026-05-21T16:40:47.205200",
+    "status": "completed"
+  },
+  "cart_shipping_method_tax_line": {
+    "last_updated": "2026-05-21T16:40:48.505059",
+    "status": "completed"
+  },
+  "product_category": {
+    "last_updated": "2026-05-21T16:41:10.363440",
+    "status": "completed"
+  },
+  "product_category_product": {
+    "last_updated": "2026-05-21T16:41:11.626372",
+    "status": "completed"
+  },
+  "product_collection": {
+    "last_updated": "2026-05-21T16:41:13.012003",
+    "status": "completed"
+  },
+  "product_shipping_profile": {
+    "last_updated": "2026-05-21T16:41:32.835016",
+    "status": "completed"
+  },
+  "product_tag": {
+    "last_updated": "2026-05-21T16:41:34.310960",
+    "status": "completed"
+  },
+  "product_tags": {
+    "last_updated": "2026-05-21T16:41:35.704576",
+    "status": "completed"
+  },
+  "product_type": {
+    "last_updated": "2026-05-21T16:41:37.176758",
+    "status": "completed"
+  },
+  "product_variant_product_image": {
+    "last_updated": "2026-05-21T16:41:48.097765",
+    "status": "completed"
+  },
+  "price": {
+    "last_updated": "2026-05-21T16:42:09.238028",
+    "status": "completed"
+  },
+  "price_list": {
+    "last_updated": "2026-05-21T16:42:11.568658",
+    "status": "completed"
+  },
+  "price_list_rule": {
+    "last_updated": "2026-05-21T16:42:12.861485",
+    "status": "completed"
+  },
+  "price_rule": {
+    "last_updated": "2026-05-21T16:42:16.698357",
+    "status": "completed"
+  },
+  "inventory_level": {
+    "last_updated": "2026-05-21T16:42:22.328376",
+    "status": "completed"
+  },
+  "reservation_item": {
+    "last_updated": "2026-05-21T16:42:23.690400",
+    "status": "completed"
+  },
+  "stock_location": {
+    "last_updated": "2026-05-21T16:42:25.051233",
+    "status": "completed"
+  },
+  "stock_location_address": {
+    "last_updated": "2026-05-21T16:42:26.905951",
+    "status": "completed"
+  },
+  "location_fulfillment_provider": {
+    "last_updated": "2026-05-21T16:42:28.951061",
+    "status": "completed"
+  },
+  "location_fulfillment_set": {
+    "last_updated": "2026-05-21T16:42:30.323427",
+    "status": "completed"
+  },
+  "fulfillment": {
+    "last_updated": "2026-05-21T16:42:31.756846",
+    "status": "completed"
+  },
+  "fulfillment_address": {
+    "last_updated": "2026-05-21T16:42:33.043949",
+    "status": "completed"
+  },
+  "fulfillment_item": {
+    "last_updated": "2026-05-21T16:42:34.351215",
+    "status": "completed"
+  },
+  "fulfillment_label": {
+    "last_updated": "2026-05-21T16:42:35.759681",
+    "status": "completed"
+  },
+  "fulfillment_set": {
+    "last_updated": "2026-05-21T16:42:39.245272",
+    "status": "completed"
+  },
+  "return": {
+    "last_updated": "2026-05-21T16:42:41.201203",
+    "status": "completed"
+  },
+  "return_fulfillment": {
+    "last_updated": "2026-05-21T16:42:42.577876",
+    "status": "completed"
+  },
+  "return_item": {
+    "last_updated": "2026-05-21T16:42:43.955132",
+    "status": "completed"
+  },
+  "return_reason": {
+    "last_updated": "2026-05-21T16:42:45.275449",
+    "status": "completed"
+  },
+  "promotion": {
+    "last_updated": "2026-05-21T16:42:47.164188",
+    "status": "completed"
+  },
+  "promotion_application_method": {
+    "last_updated": "2026-05-21T16:42:48.627526",
+    "status": "completed"
+  },
+  "promotion_campaign": {
+    "last_updated": "2026-05-21T16:42:49.941785",
+    "status": "completed"
+  },
+  "promotion_campaign_budget": {
+    "last_updated": "2026-05-21T16:42:51.323725",
+    "status": "completed"
+  },
+  "promotion_campaign_budget_usage": {
+    "last_updated": "2026-05-21T16:42:52.713703",
+    "status": "completed"
+  },
+  "promotion_promotion_rule": {
+    "last_updated": "2026-05-21T16:42:54.013180",
+    "status": "completed"
+  },
+  "promotion_rule": {
+    "last_updated": "2026-05-21T16:42:55.411677",
+    "status": "completed"
+  },
+  "promotion_rule_value": {
+    "last_updated": "2026-05-21T16:42:56.711238",
+    "status": "completed"
+  },
+  "geo_zone": {
+    "last_updated": "2026-05-21T16:43:15.692797",
+    "status": "completed"
+  },
+  "service_zone": {
+    "last_updated": "2026-05-21T16:43:17.020874",
+    "status": "completed"
+  },
+  "sales_channel_stock_location": {
+    "last_updated": "2026-05-21T16:43:20.730666",
+    "status": "completed"
+  },
+  "store_currency": {
+    "last_updated": "2026-05-21T16:43:24.082425",
+    "status": "completed"
+  },
+  "store_locale": {
+    "last_updated": "2026-05-21T16:43:25.968571",
+    "status": "completed"
+  },
+  "tax_rate": {
+    "last_updated": "2026-05-21T16:43:35.106678",
+    "status": "completed"
+  },
+  "tax_rate_rule": {
+    "last_updated": "2026-05-21T16:43:36.754609",
+    "status": "completed"
+  },
+  "tax_region": {
+    "last_updated": "2026-05-21T16:43:38.181230",
+    "status": "completed"
+  },
+  "shipping_option": {
+    "last_updated": "2026-05-21T16:43:39.549515",
+    "status": "completed"
+  },
+  "shipping_option_price_set": {
+    "last_updated": "2026-05-21T16:43:41.048541",
+    "status": "completed"
+  },
+  "shipping_option_rule": {
+    "last_updated": "2026-05-21T16:43:42.684257",
+    "status": "completed"
+  },
+  "shipping_option_type": {
+    "last_updated": "2026-05-21T16:43:44.068552",
+    "status": "completed"
+  },
+  "view_configuration": {
+    "last_updated": "2026-05-21T16:43:50.682250",
+    "status": "completed"
+  },
+  "workflow_execution": {
+    "last_updated": "2026-05-21T16:43:52.009738",
+    "status": "completed"
+  }
+}
