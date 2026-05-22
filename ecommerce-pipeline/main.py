@@ -216,21 +216,24 @@ def send_discord_alert(message: str, is_error: bool = False):
 # PostgreSQL Password
 # =============================
 def get_postgres_password() -> str:
+    # Try direct password secret first
+    direct_password = os.getenv("RDS_PASSWORD")
+    if direct_password:
+        return direct_password
+    
+    # Fall back to Secrets Manager
     try:
         secret_arn = os.getenv("RDS_SECRET_ARN")
         if not secret_arn:
             return ""
-        
         result = subprocess.run(
-            ['aws', 'secretsmanager', 'get-secret-value', 
+            ['aws', 'secretsmanager', 'get-secret-value',
              '--secret-id', secret_arn,
              '--query', 'SecretString', '--output', 'text'],
             capture_output=True, text=True, timeout=10
         )
-        
         if result.returncode != 0:
             return ""
-        
         secret = json.loads(result.stdout.strip())
         return secret.get('password', '')
     except Exception as e:

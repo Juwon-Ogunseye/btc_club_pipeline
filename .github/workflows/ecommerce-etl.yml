@@ -47,6 +47,7 @@ jobs:
           RDS_SECRET_ARN: ${{ secrets.RDS_SECRET_ARN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          RDS_PASSWORD: ${{ secrets.RDS_PASSWORD }}
           AWS_DEFAULT_REGION: us-east-2
           ETL_SOURCE: postgres
           MOTHERDUCK_DB: ecommerce
