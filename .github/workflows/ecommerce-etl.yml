@@ -2,6 +2,8 @@ name: E-Commerce ETL Pipeline (PostgreSQL)
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'ecommerce-pipeline/**'
   workflow_dispatch:

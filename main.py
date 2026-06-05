@@ -106,6 +106,8 @@ try:
         logging.info(f"⬇️ Pulling '{table}' from MySQL...")
         try:
             df = pd.read_sql(f"SELECT * FROM `{table}`", conn)
+            # Convert empty strings to NULL to avoid type conversion errors
+            df = df.replace('', None)
         except Exception as e:
             msg = f"❌ Failed to pull '{table}': {e}"
             logging.error(msg)
