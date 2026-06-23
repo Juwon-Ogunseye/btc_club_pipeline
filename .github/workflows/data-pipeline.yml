@@ -22,7 +22,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pymysql pandas duckdb python-dotenv requests
+          pip install pymysql pandas duckdb==1.5.3 python-dotenv requests
       
       - name: Add GitHub Actions IP to RDS Security Group
         run: |
