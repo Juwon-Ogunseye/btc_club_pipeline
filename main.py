@@ -93,14 +93,6 @@ try:
     duck_con = db.connect("md:btc_analytics")
     logging.info("✅ Connected to MotherDuck")
 
-    # Drop all tables for fresh load with correct types from PostgreSQL
-    for t in tables_to_pull:
-        try:
-            duck_con.execute(f'DROP TABLE IF EXISTS "{t}"')
-            logging.info(f"🗑️ Dropped existing table '{t}' for fresh load")
-        except Exception:
-            pass
-
     logging.info("🔌 Connecting to PostgreSQL...")
     engine = create_engine(
         f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}",
@@ -152,7 +144,7 @@ try:
             msg = f"⚠️ Schema mismatch on '{table}', recreating table..."
             logging.warning(msg)
             summary_messages.append(msg)
-            duck_con.execute(f'DROP TABLE "{t}"')
+            duck_con.execute(f'DROP TABLE "{table}"')
             duck_con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM tmp_df')
             msg = f"🔄 Table '{table}' recreated with {len(df)} rows and updated schema"
             logging.info(msg)
