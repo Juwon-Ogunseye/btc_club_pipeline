@@ -99,7 +99,7 @@ try:
         connect_args={
             "sslmode": "verify-full",
             "sslrootcert": SSL_CERT_PATH,
-            "options": "-c search_path=btcdb"
+            "options": "-c search_path=public"
         }
     )
     conn = engine.connect()
