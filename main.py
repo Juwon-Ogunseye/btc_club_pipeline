@@ -100,9 +100,12 @@ try:
         password=PG_PASSWORD,
         dbname=PG_DATABASE,
         sslmode="verify-full",
-        sslrootcert=SSL_CERT_PATH,
-        options="-c search_path=btcdb"
+        sslrootcert=SSL_CERT_PATH
     )
+    cursor = conn.cursor()
+    cursor.execute("SET search_path TO btcdb")
+    conn.commit()
+    cursor.close()
     logging.info("✅ Connected to PostgreSQL")
 
     for table in tables_to_pull:
