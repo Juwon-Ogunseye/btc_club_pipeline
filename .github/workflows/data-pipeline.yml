@@ -22,7 +22,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install pymysql pandas duckdb==1.5.3 python-dotenv requests
+          pip install pymysql pandas "duckdb==1.5.3" python-dotenv requests awscli
       
       - name: Add GitHub Actions IP to RDS Security Group
         run: |
@@ -31,7 +31,7 @@ jobs:
             --group-id sg-0b0b2e2d8c25693d2 \
             --protocol tcp \
             --port 3306 \
-            --cidr $MY_IP/32
+            --cidr $MY_IP/32 || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -53,7 +53,7 @@ jobs:
             --group-id sg-0b0b2e2d8c25693d2 \
             --protocol tcp \
             --port 3306 \
-            --cidr $MY_IP/32
+            --cidr $MY_IP/32 || true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
