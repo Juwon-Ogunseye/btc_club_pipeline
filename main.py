@@ -36,7 +36,7 @@ PG_PORT = 5432
 PG_USER = os.getenv("PG_USER")
 PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_DATABASE = os.getenv("PG_DATABASE")
-SSL_CERT_PATH = os.getenv("SSL_CERT_PATH", "../global-bundle.pem")
+SSL_CERT_PATH = os.getenv("SSL_CERT_PATH", "./global-bundle.pem")
 
 PRIMARY_KEYS = {
     "application": "id",
@@ -73,6 +73,8 @@ logging.basicConfig(
 )
 
 def send_discord_alert(message):
+    if len(message) > 1900:
+        message = message[:1900] + "\n... (truncated)"
     payload = {"content": message}
     try:
         r = requests.post(DISCORD_WEBHOOK, json=payload)
@@ -98,14 +100,15 @@ try:
         password=PG_PASSWORD,
         dbname=PG_DATABASE,
         sslmode="verify-full",
-        sslrootcert=SSL_CERT_PATH
+        sslrootcert=SSL_CERT_PATH,
+        options="-c search_path=btcdb"
     )
     logging.info("✅ Connected to PostgreSQL")
 
     for table in tables_to_pull:
         logging.info(f"⬇️ Pulling '{table}' from PostgreSQL...")
         try:
-            df = pd.read_sql(f'SELECT * FROM btcdb."{table}"', conn)
+            df = pd.read_sql(f'SELECT * FROM "{table}"', conn)
             df = df.replace('', None)
         except Exception as e:
             msg = f"❌ Failed to pull '{table}': {e}"
@@ -182,7 +185,7 @@ try:
 except Exception as e:
     error_details = traceback.format_exc()
     logging.error(f"❌ Database connection or extraction failed: {e}")
-    send_discord_alert(f"❌ ETL Job Failed!\n```{error_details}```")
+    send_discord_alert(f"❌ ETL Job Failed!\n```{error_details[:1500]}```")
 
 finally:
     if conn:
