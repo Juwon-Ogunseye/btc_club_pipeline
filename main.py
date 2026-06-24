@@ -1,4 +1,4 @@
-import pymysql
+import psycopg2
 import pandas as pd
 import duckdb as db
 import os
@@ -7,11 +7,14 @@ import requests
 import logging
 from dotenv import load_dotenv
 from datetime import datetime
+
 load_dotenv()
-required_vars = ['MOTHERDUCK_TOKEN', 'ENDPOINT', 'PASSWORD', 'DISCORD_WEBHOOK']
+
+required_vars = ['MOTHERDUCK_TOKEN', 'PG_HOST', 'PG_USER', 'PG_PASSWORD', 'PG_DATABASE', 'DISCORD_WEBHOOK']
 missing = [var for var in required_vars if not os.getenv(var)]
 if missing:
     raise RuntimeError(f"Missing required env vars: {missing}")
+
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 
 if DISCORD_WEBHOOK:
@@ -28,16 +31,18 @@ else:
     print("❌ DISCORD_WEBHOOK not set")
 
 MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
-ENDPOINT = os.getenv("ENDPOINT")
-PORT = 3306
-USER = "analytics_ro"
-PASSWORD = os.getenv("PASSWORD")
-DBNAME = "btcdb"
+PG_HOST = os.getenv("PG_HOST")
+PG_PORT = 5432
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
+PG_DATABASE = os.getenv("PG_DATABASE")
+SSL_CERT_PATH = os.getenv("SSL_CERT_PATH", "../global-bundle.pem")
 
 PRIMARY_KEYS = {
     "application": "id",
     "bitcoin_events": "id",
+    "builderonboarding": "id",
+    "builderonboardinginterest": "id",
     "opportunity": "id",
     "opportunitycategory": "opportunity_id",
     "organization": "id",
@@ -47,15 +52,13 @@ PRIMARY_KEYS = {
     "outputtype": "id",
     "profile": "user_id",
     "profilelink": "id",
+    "proof": "id",
     "tools": "id",
     "user": "id"
 }
 
 tables_to_pull = list(PRIMARY_KEYS.keys())
 
-# -----------------------------
-# Logging Setup
-# -----------------------------
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 log_filename = os.path.join(LOG_DIR, f"etl_{datetime.now().strftime('%Y-%m-%d')}.log")
@@ -69,9 +72,6 @@ logging.basicConfig(
     ]
 )
 
-# -----------------------------
-# Discord Helper
-# -----------------------------
 def send_discord_alert(message):
     payload = {"content": message}
     try:
@@ -81,9 +81,6 @@ def send_discord_alert(message):
     except Exception as e:
         logging.error(f"Exception sending Discord alert: {e}")
 
-# -----------------------------
-# ETL Pipeline
-# -----------------------------
 conn = None
 duck_con = None
 summary_messages = []
@@ -93,20 +90,22 @@ try:
     duck_con = db.connect("md:btc_analytics")
     logging.info("✅ Connected to MotherDuck")
 
-    conn = pymysql.connect(
-        host=ENDPOINT,
-        user=USER,
-        password=PASSWORD,
-        database=DBNAME,
-        port=PORT
+    logging.info("🔌 Connecting to PostgreSQL...")
+    conn = psycopg2.connect(
+        host=PG_HOST,
+        port=PG_PORT,
+        user=PG_USER,
+        password=PG_PASSWORD,
+        dbname=PG_DATABASE,
+        sslmode="verify-full",
+        sslrootcert=SSL_CERT_PATH
     )
-    logging.info("✅ Connected to MySQL")
+    logging.info("✅ Connected to PostgreSQL")
 
     for table in tables_to_pull:
-        logging.info(f"⬇️ Pulling '{table}' from MySQL...")
+        logging.info(f"⬇️ Pulling '{table}' from PostgreSQL...")
         try:
-            df = pd.read_sql(f"SELECT * FROM `{table}`", conn)
-            # Convert empty strings to NULL to avoid type conversion errors
+            df = pd.read_sql(f'SELECT * FROM btcdb."{table}"', conn)
             df = df.replace('', None)
         except Exception as e:
             msg = f"❌ Failed to pull '{table}': {e}"
@@ -122,14 +121,12 @@ try:
 
         duck_con.register("tmp_df", df)
 
-        # Check if table exists in MotherDuck
         try:
             duck_con.execute(f'SELECT 1 FROM "{table}" LIMIT 1')
             table_exists = True
         except Exception:
             table_exists = False
 
-        # Create table if missing
         if not table_exists:
             duck_con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM tmp_df')
             msg = f"🎉 Table '{table}' created with {len(df)} rows"
@@ -137,7 +134,6 @@ try:
             summary_messages.append(msg)
             continue
 
-        # Check for schema mismatch
         existing_columns = duck_con.execute(f'SELECT * FROM "{table}" LIMIT 0').df().columns.tolist()
         source_columns = df.columns.tolist()
 
@@ -152,7 +148,6 @@ try:
             summary_messages.append(msg)
             continue
 
-        # Incremental load
         pk_column = PRIMARY_KEYS.get(table)
         if not pk_column or pk_column not in df.columns:
             msg = f"⚠️ No valid primary key found for '{table}', skipping incremental load"
@@ -182,7 +177,7 @@ try:
         logging.info(msg)
         summary_messages.append(msg)
 
-    send_discord_alert(f"✅ ETL Job Completed Successfully!\n\n" + "\n".join(summary_messages))
+    send_discord_alert("✅ ETL Job Completed Successfully!\n\n" + "\n".join(summary_messages))
 
 except Exception as e:
     error_details = traceback.format_exc()
