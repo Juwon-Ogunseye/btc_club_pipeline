@@ -1,4 +1,3 @@
-import psycopg2
 import pandas as pd
 import duckdb as db
 import os
@@ -7,6 +6,7 @@ import requests
 import logging
 from dotenv import load_dotenv
 from datetime import datetime
+from sqlalchemy import create_engine
 
 load_dotenv()
 
@@ -84,6 +84,7 @@ def send_discord_alert(message):
         logging.error(f"Exception sending Discord alert: {e}")
 
 conn = None
+engine = None
 duck_con = None
 summary_messages = []
 
@@ -93,19 +94,15 @@ try:
     logging.info("✅ Connected to MotherDuck")
 
     logging.info("🔌 Connecting to PostgreSQL...")
-    conn = psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        user=PG_USER,
-        password=PG_PASSWORD,
-        dbname=PG_DATABASE,
-        sslmode="verify-full",
-        sslrootcert=SSL_CERT_PATH
+    engine = create_engine(
+        f"postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}",
+        connect_args={
+            "sslmode": "verify-full",
+            "sslrootcert": SSL_CERT_PATH,
+            "options": "-c search_path=btcdb"
+        }
     )
-    cursor = conn.cursor()
-    cursor.execute("SET search_path TO btcdb")
-    conn.commit()
-    cursor.close()
+    conn = engine.connect()
     logging.info("✅ Connected to PostgreSQL")
 
     for table in tables_to_pull:
@@ -193,5 +190,7 @@ except Exception as e:
 finally:
     if conn:
         conn.close()
+    if engine:
+        engine.dispose()
     if duck_con:
         duck_con.close()

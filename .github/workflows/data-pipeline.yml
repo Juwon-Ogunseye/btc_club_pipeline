@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install psycopg2-binary pandas "duckdb==1.5.3" python-dotenv requests awscli
+          pip install psycopg2-binary pandas "duckdb==1.5.3" python-dotenv requests awscli sqlalchemy
 
       - name: Download AWS RDS SSL Certificate
         run: |
