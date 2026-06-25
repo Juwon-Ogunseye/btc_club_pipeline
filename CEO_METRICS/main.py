@@ -1,30 +1,65 @@
 import duckdb as db
 import os
-import requests
+import boto3
 import logging
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 load_dotenv()
 
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
+SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
+SES_TO_EMAIL = os.getenv("SES_TO_EMAIL")
+AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-2")
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 
-def send_discord_report(message):
-    chunks = [message[i:i+1900] for i in range(0, len(message), 1900)]
-    for chunk in chunks:
-        payload = {"content": chunk}
-        try:
-            r = requests.post(DISCORD_WEBHOOK, json=payload)
-            if r.status_code != 204:
-                logging.warning(f"Failed to send Discord report: {r.status_code} {r.text}")
-        except Exception as e:
-            logging.error(f"Exception sending Discord report: {e}")
+def send_email(subject, html_body):
+    client = boto3.client("ses", region_name=AWS_REGION)
+    try:
+        client.send_email(
+            Source=SES_FROM_EMAIL,
+            Destination={"ToAddresses": [SES_TO_EMAIL]},
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {"Html": {"Data": html_body}}
+            }
+        )
+        logging.info("✅ Email sent successfully")
+    except Exception as e:
+        logging.error(f"❌ Failed to send email: {e}")
+
+def metric_row(label, value, note=None):
+    note_html = f"<span style='color:#888;font-size:12px;'> {note}</span>" if note else ""
+    return f"""
+    <tr>
+        <td style="padding:8px 12px;color:#555;font-size:14px;">{label}</td>
+        <td style="padding:8px 12px;font-weight:bold;font-size:14px;color:#111;">{value}{note_html}</td>
+    </tr>
+    """
+
+def na_row(label):
+    return f"""
+    <tr>
+        <td style="padding:8px 12px;color:#555;font-size:14px;">{label}</td>
+        <td style="padding:8px 12px;font-size:14px;color:#aaa;font-style:italic;">Data not available yet</td>
+    </tr>
+    """
+
+def section(title, color, rows_html):
+    return f"""
+    <div style="margin-bottom:32px;">
+        <div style="background:{color};padding:12px 16px;border-radius:6px 6px 0 0;">
+            <h2 style="margin:0;color:white;font-size:16px;font-family:Arial,sans-serif;">{title}</h2>
+        </div>
+        <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;">
+            {rows_html}
+        </table>
+    </div>
+    """
 
 try:
     logging.info("🔌 Connecting to MotherDuck...")
@@ -50,7 +85,7 @@ try:
         WHERE created_at >= '{seven_days_ago}'
     ''').fetchone()[0]
 
-    users_onboarded = duck_con.execute(f'''
+    users_onboarded = duck_con.execute('''
         SELECT COUNT(*) FROM "user"
         WHERE onboarding_completed_at IS NOT NULL
     ''').fetchone()[0]
@@ -64,12 +99,14 @@ try:
 
     completed_profiles = duck_con.execute('''
         SELECT COUNT(*) FROM "profile"
-        WHERE username IS NOT NULL
-        AND bio IS NOT NULL
-        AND headline IS NOT NULL
-        AND summary IS NOT NULL
-        AND interests IS NOT NULL
-        AND profile_picture IS NOT NULL
+        WHERE (
+            CASE WHEN username IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN bio IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN headline IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN summary IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN interests IS NOT NULL THEN 1 ELSE 0 END +
+            CASE WHEN profile_picture IS NOT NULL THEN 1 ELSE 0 END
+        ) >= 3
     ''').fetchone()[0]
 
     profile_completion_rate = round((completed_profiles / total_profiles * 100), 1) if total_profiles > 0 else 0
@@ -131,58 +168,84 @@ try:
     total_invites = duck_con.execute('SELECT COUNT(*) FROM "orginvite"').fetchone()[0]
 
     # -----------------------------
-    # Build Report
+    # Build HTML Email
     # -----------------------------
-    report = f"""
-📊 **Daily CEO Metrics — BCH — {today.strftime('%B %d, %Y')}**
+    snapshot_rows = (
+        metric_row("👥 Total Users", f"{total_users:,}")
+        + metric_row("🆕 New Users Yesterday", str(new_users_yesterday))
+        + metric_row("📈 New Users (7d)", str(new_users_7d))
+        + metric_row("✅ Onboarding Completion Rate", f"{onboarding_rate}%")
+        + na_row("💰 GMV")
+        + na_row("💵 Net Revenue")
+    )
 
-━━━━━━━━━━━━━━━━━━━━━━
-**1️⃣ CEO SNAPSHOT**
-━━━━━━━━━━━━━━━━━━━━━━
-👥 Total Users: **{total_users}**
-🆕 New Users Yesterday: **{new_users_yesterday}**
-📈 New Users (7d): **{new_users_7d}**
-✅ Onboarding Completion Rate: **{onboarding_rate}%**
-💰 GMV: *Data not available yet*
-💵 Net Revenue: *Data not available yet*
+    network_rows = (
+        na_row("🟢 7-Day Active Users")
+        + metric_row("📋 Profile Completion Rate", f"{profile_completion_rate}%", f"({completed_profiles}/{total_profiles} profiles)")
+        + metric_row("🏆 Proof-of-Work Entries Yesterday", str(new_proofs_yesterday))
+        + metric_row("📦 Total Proof Entries", f"{total_proofs:,}")
+        + metric_row("📈 New Proofs (7d)", str(new_proofs_7d))
+        + na_row("⚡ Activation Rate")
+        + metric_row("🏢 Total Organizations", f"{total_orgs:,}")
+        + metric_row("🆕 New Organizations Yesterday", str(new_orgs_yesterday))
+        + metric_row("🤝 Total Org Members", f"{total_org_members:,}")
+    )
 
-━━━━━━━━━━━━━━━━━━━━━━
-**2️⃣ BCH NETWORK HEALTH**
-━━━━━━━━━━━━━━━━━━━━━━
-👥 Total Users: **{total_users}**
-🟢 7-Day Active Users: *Data not available yet*
-📋 Profile Completion Rate: **{profile_completion_rate}%** ({completed_profiles}/{total_profiles})
-🏆 Proof-of-Work Entries Yesterday: **{new_proofs_yesterday}**
-📦 Total Proof Entries: **{total_proofs}**
-📈 New Proofs (7d): **{new_proofs_7d}**
-⚡ Activation Rate: *Data not available yet*
-🏢 Total Organizations: **{total_orgs}**
-🆕 New Organizations Yesterday: **{new_orgs_yesterday}**
-🤝 Total Org Members: **{total_org_members}**
+    opportunity_rows = (
+        metric_row("📌 Total Opportunities", f"{total_opportunities:,}")
+        + metric_row("🆕 New Opportunities Yesterday", str(new_opportunities_yesterday))
+        + metric_row("📈 New Opportunities (7d)", str(new_opportunities_7d))
+        + metric_row("✅ Active Opportunities", str(active_opportunities))
+        + metric_row("📝 Total Applications", f"{total_applications:,}")
+        + metric_row("🆕 New Applications Yesterday", str(new_applications_yesterday))
+        + metric_row("📈 New Applications (7d)", str(new_applications_7d))
+        + metric_row("🔗 Total Org Invites", f"{total_invites:,}")
+        + na_row("🤖 Matches Generated")
+        + na_row("👆 Match/Opportunity Clicks")
+        + na_row("🌟 Qualified Connections")
+    )
 
-━━━━━━━━━━━━━━━━━━━━━━
-**3️⃣ BCH OPPORTUNITY ENGINE**
-━━━━━━━━━━━━━━━━━━━━━━
-📌 Total Opportunities: **{total_opportunities}**
-🆕 New Opportunities Yesterday: **{new_opportunities_yesterday}**
-📈 New Opportunities (7d): **{new_opportunities_7d}**
-✅ Active Opportunities: **{active_opportunities}**
-📝 Total Applications: **{total_applications}**
-🆕 New Applications Yesterday: **{new_applications_yesterday}**
-📈 New Applications (7d): **{new_applications_7d}**
-🔗 Total Org Invites: **{total_invites}**
-🤖 Matches Generated: *Data not available yet*
-👆 Match/Opportunity Clicks: *Data not available yet*
-🌟 Qualified Connections: *Data not available yet*
-"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+        <div style="max-width:640px;margin:32px auto;padding:0 16px;">
 
-    send_discord_report(report)
-    logging.info("✅ CEO metrics report sent to Discord")
+            <!-- Header -->
+            <div style="background:#1a1a2e;padding:28px 24px;border-radius:8px 8px 0 0;text-align:center;">
+                <h1 style="margin:0;color:white;font-size:22px;">📊 Daily CEO Metrics</h1>
+                <p style="margin:8px 0 0;color:#a0aec0;font-size:14px;">Bitcoin Culture Hub &nbsp;·&nbsp; {today.strftime('%B %d, %Y')}</p>
+            </div>
+
+            <!-- Body -->
+            <div style="background:#f3f4f6;padding:24px 0;">
+                {section("1️⃣ CEO Snapshot", "#2563eb", snapshot_rows)}
+                {section("2️⃣ BCH Network Health", "#16a34a", network_rows)}
+                {section("3️⃣ BCH Opportunity Engine", "#9333ea", opportunity_rows)}
+            </div>
+
+            <!-- Footer -->
+            <div style="text-align:center;padding:16px;color:#9ca3af;font-size:12px;">
+                Generated automatically by BCH Data Pipeline &nbsp;·&nbsp; {today.strftime('%B %d, %Y')}
+            </div>
+
+        </div>
+    </body>
+    </html>
+    """
+
+    subject = f"Daily CEO Metrics — BCH — {today.strftime('%B %d, %Y')}"
+    send_email(subject, html)
 
 except Exception as e:
     logging.error(f"❌ CEO metrics failed: {e}")
-    if DISCORD_WEBHOOK:
-        requests.post(DISCORD_WEBHOOK, json={"content": f"❌ CEO Metrics Failed!\n```{str(e)}```"})
+    try:
+        send_email(
+            f"❌ CEO Metrics Failed — {datetime.utcnow().date()}",
+            f"<p>The CEO metrics script failed with the following error:</p><pre>{str(e)}</pre>"
+        )
+    except Exception:
+        pass
 
 finally:
     try:

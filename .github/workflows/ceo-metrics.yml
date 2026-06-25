@@ -22,11 +22,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install "duckdb==1.5.3" python-dotenv requests
+          pip install "duckdb==1.5.3" python-dotenv requests boto3
 
       - name: Run CEO Metrics Report
         working-directory: CEO_METRICS
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          SES_FROM_EMAIL: ${{ secrets.SES_FROM_EMAIL }}
+          SES_TO_EMAIL: ${{ secrets.SES_TO_EMAIL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
         run: python main.py
