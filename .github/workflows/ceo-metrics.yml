@@ -25,6 +25,7 @@ jobs:
           pip install "duckdb==1.5.3" python-dotenv requests
 
       - name: Run CEO Metrics Report
+        working-directory: CEO_METRICS
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
