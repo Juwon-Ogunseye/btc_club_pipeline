@@ -9,6 +9,7 @@ load_dotenv()
 
 MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
+SES_TO_EMAIL = os.getenv("SES_TO_EMAIL")
 SES_TO_EMAIL_BFC = os.getenv("SES_TO_EMAIL_BFC")
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-2")
 
@@ -22,7 +23,7 @@ def send_email(subject, html_body):
     try:
         client.send_email(
             Source=SES_FROM_EMAIL,
-            Destination={"ToAddresses": [SES_TO_EMAIL_BFC]},
+            Destination={"ToAddresses": [SES_TO_EMAIL_BFC, SES_TO_EMAIL]},
             Message={
                 "Subject": {"Data": subject},
                 "Body": {"Html": {"Data": html_body}}
@@ -146,8 +147,8 @@ try:
 
             <!-- Body -->
             <div style="background:#f3f4f6;padding:24px 0;">
-                {section("4️⃣ BFC Supply", "#0891b2", supply_rows)}
-                {section("5️⃣ BFC Demand & Liquidity", "#dc2626", demand_rows)}
+                {section("1️⃣ BFC Supply", "#0891b2", supply_rows)}
+                {section("2️⃣ BFC Demand & Liquidity", "#dc2626", demand_rows)}
             </div>
 
             <!-- Footer -->
