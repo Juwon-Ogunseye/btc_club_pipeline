@@ -10,6 +10,7 @@ load_dotenv()
 MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
 SES_TO_EMAIL = os.getenv("SES_TO_EMAIL")
+SES_TO_EMAIL_BFC = os.getenv("SES_TO_EMAIL_BFC")
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-2")
 
 logging.basicConfig(
@@ -22,7 +23,7 @@ def send_email(subject, html_body):
     try:
         client.send_email(
             Source=SES_FROM_EMAIL,
-            Destination={"ToAddresses": [SES_TO_EMAIL]},
+            Destination={"ToAddresses": [SES_TO_EMAIL, SES_TO_EMAIL_BFC]},
             Message={
                 "Subject": {"Data": subject},
                 "Body": {"Html": {"Data": html_body}}
@@ -36,16 +37,16 @@ def metric_row(label, value, note=None):
     note_html = f"<span style='color:#888;font-size:12px;'> {note}</span>" if note else ""
     return f"""
     <tr>
-        <td style="padding:8px 12px;color:#555;font-size:14px;">{label}</td>
-        <td style="padding:8px 12px;font-weight:bold;font-size:14px;color:#111;">{value}{note_html}</td>
+        <td style="padding:8px 12px;color:#555;font-size:14px;border-bottom:1px solid #f3f4f6;">{label}</td>
+        <td style="padding:8px 12px;font-weight:bold;font-size:14px;color:#111;border-bottom:1px solid #f3f4f6;">{value}{note_html}</td>
     </tr>
     """
 
 def na_row(label):
     return f"""
     <tr>
-        <td style="padding:8px 12px;color:#555;font-size:14px;">{label}</td>
-        <td style="padding:8px 12px;font-size:14px;color:#aaa;font-style:italic;">Data not available yet</td>
+        <td style="padding:8px 12px;color:#555;font-size:14px;border-bottom:1px solid #f3f4f6;">{label}</td>
+        <td style="padding:8px 12px;font-size:14px;color:#aaa;font-style:italic;border-bottom:1px solid #f3f4f6;">Data not available yet</td>
     </tr>
     """
 
@@ -63,41 +64,24 @@ def section(title, color, rows_html):
 
 try:
     logging.info("🔌 Connecting to MotherDuck...")
-    duck_con = db.connect("md:btc_analytics")
+    bch_con = db.connect("md:btc_analytics")
     logging.info("✅ Connected to MotherDuck")
 
     today = datetime.utcnow().date()
     yesterday = today - timedelta(days=1)
     seven_days_ago = today - timedelta(days=7)
 
-    # -----------------------------
-    # CEO Snapshot
-    # -----------------------------
-    total_users = duck_con.execute('SELECT COUNT(*) FROM "user"').fetchone()[0]
-
-    new_users_yesterday = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "user"
-        WHERE DATE(created_at) = '{yesterday}'
-    ''').fetchone()[0]
-
-    new_users_7d = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "user"
-        WHERE created_at >= '{seven_days_ago}'
-    ''').fetchone()[0]
-
-    users_onboarded = duck_con.execute('''
-        SELECT COUNT(*) FROM "user"
-        WHERE onboarding_completed_at IS NOT NULL
-    ''').fetchone()[0]
-
+    # ─────────────────────────────
+    # BCH METRICS
+    # ─────────────────────────────
+    total_users = bch_con.execute('SELECT COUNT(*) FROM "user"').fetchone()[0]
+    new_users_yesterday = bch_con.execute(f'SELECT COUNT(*) FROM "user" WHERE DATE(created_at) = \'{yesterday}\'').fetchone()[0]
+    new_users_7d = bch_con.execute(f'SELECT COUNT(*) FROM "user" WHERE created_at >= \'{seven_days_ago}\'').fetchone()[0]
+    users_onboarded = bch_con.execute('SELECT COUNT(*) FROM "user" WHERE onboarding_completed_at IS NOT NULL').fetchone()[0]
     onboarding_rate = round((users_onboarded / total_users * 100), 1) if total_users > 0 else 0
 
-    # -----------------------------
-    # BCH Network Health
-    # -----------------------------
-    total_profiles = duck_con.execute('SELECT COUNT(*) FROM "profile"').fetchone()[0]
-
-    completed_profiles = duck_con.execute('''
+    total_profiles = bch_con.execute('SELECT COUNT(*) FROM "profile"').fetchone()[0]
+    completed_profiles = bch_con.execute('''
         SELECT COUNT(*) FROM "profile"
         WHERE (
             CASE WHEN username IS NOT NULL THEN 1 ELSE 0 END +
@@ -108,81 +92,40 @@ try:
             CASE WHEN profile_picture IS NOT NULL THEN 1 ELSE 0 END
         ) >= 3
     ''').fetchone()[0]
-
     profile_completion_rate = round((completed_profiles / total_profiles * 100), 1) if total_profiles > 0 else 0
 
-    total_proofs = duck_con.execute('SELECT COUNT(*) FROM "proof"').fetchone()[0]
+    total_proofs = bch_con.execute('SELECT COUNT(*) FROM "proof"').fetchone()[0]
+    new_proofs_yesterday = bch_con.execute(f'SELECT COUNT(*) FROM "proof" WHERE DATE(created_at) = \'{yesterday}\'').fetchone()[0]
+    new_proofs_7d = bch_con.execute(f'SELECT COUNT(*) FROM "proof" WHERE created_at >= \'{seven_days_ago}\'').fetchone()[0]
 
-    new_proofs_yesterday = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "proof"
-        WHERE DATE(created_at) = '{yesterday}'
-    ''').fetchone()[0]
+    total_orgs = bch_con.execute('SELECT COUNT(*) FROM "organization"').fetchone()[0]
+    new_orgs_yesterday = bch_con.execute(f'SELECT COUNT(*) FROM "organization" WHERE DATE(submitted_at) = \'{yesterday}\'').fetchone()[0]
+    total_org_members = bch_con.execute('SELECT COUNT(*) FROM "organizationmember"').fetchone()[0]
 
-    new_proofs_7d = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "proof"
-        WHERE created_at >= '{seven_days_ago}'
-    ''').fetchone()[0]
+    total_opportunities = bch_con.execute('SELECT COUNT(*) FROM "opportunity"').fetchone()[0]
+    new_opportunities_yesterday = bch_con.execute(f'SELECT COUNT(*) FROM "opportunity" WHERE DATE(created_at) = \'{yesterday}\'').fetchone()[0]
+    new_opportunities_7d = bch_con.execute(f'SELECT COUNT(*) FROM "opportunity" WHERE created_at >= \'{seven_days_ago}\'').fetchone()[0]
+    active_opportunities = bch_con.execute('SELECT COUNT(*) FROM "opportunity" WHERE status = \'active\' AND deleted_at IS NULL').fetchone()[0]
 
-    total_orgs = duck_con.execute('SELECT COUNT(*) FROM "organization"').fetchone()[0]
+    total_applications = bch_con.execute('SELECT COUNT(*) FROM "application"').fetchone()[0]
+    new_applications_yesterday = bch_con.execute(f'SELECT COUNT(*) FROM "application" WHERE DATE(applied_at) = \'{yesterday}\'').fetchone()[0]
+    new_applications_7d = bch_con.execute(f'SELECT COUNT(*) FROM "application" WHERE applied_at >= \'{seven_days_ago}\'').fetchone()[0]
+    total_invites = bch_con.execute('SELECT COUNT(*) FROM "orginvite"').fetchone()[0]
 
-    new_orgs_yesterday = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "organization"
-        WHERE DATE(submitted_at) = '{yesterday}'
-    ''').fetchone()[0]
-
-    total_org_members = duck_con.execute('SELECT COUNT(*) FROM "organizationmember"').fetchone()[0]
-
-    # -----------------------------
-    # BCH Opportunity Engine
-    # -----------------------------
-    total_opportunities = duck_con.execute('SELECT COUNT(*) FROM "opportunity"').fetchone()[0]
-
-    new_opportunities_yesterday = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "opportunity"
-        WHERE DATE(created_at) = '{yesterday}'
-    ''').fetchone()[0]
-
-    new_opportunities_7d = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "opportunity"
-        WHERE created_at >= '{seven_days_ago}'
-    ''').fetchone()[0]
-
-    active_opportunities = duck_con.execute('''
-        SELECT COUNT(*) FROM "opportunity"
-        WHERE status = 'active'
-        AND deleted_at IS NULL
-    ''').fetchone()[0]
-
-    total_applications = duck_con.execute('SELECT COUNT(*) FROM "application"').fetchone()[0]
-
-    new_applications_yesterday = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "application"
-        WHERE DATE(applied_at) = '{yesterday}'
-    ''').fetchone()[0]
-
-    new_applications_7d = duck_con.execute(f'''
-        SELECT COUNT(*) FROM "application"
-        WHERE applied_at >= '{seven_days_ago}'
-    ''').fetchone()[0]
-
-    total_invites = duck_con.execute('SELECT COUNT(*) FROM "orginvite"').fetchone()[0]
-
-    # -----------------------------
-    # Build HTML Email
-    # -----------------------------
+    # ─────────────────────────────
+    # BUILD EMAIL
+    # ─────────────────────────────
     snapshot_rows = (
         metric_row("👥 Total Users", f"{total_users:,}")
         + metric_row("🆕 New Users Yesterday", str(new_users_yesterday))
         + metric_row("📈 New Users (7d)", str(new_users_7d))
         + metric_row("✅ Onboarding Completion Rate", f"{onboarding_rate}%")
-        + na_row("💰 GMV")
-        + na_row("💵 Net Revenue")
     )
 
     network_rows = (
         na_row("🟢 7-Day Active Users")
-        + metric_row("📋 Profile Completion Rate", f"{profile_completion_rate}%", f"({completed_profiles}/{total_profiles} profiles)")
-        + metric_row("🏆 Proof-of-Work Entries Yesterday", str(new_proofs_yesterday))
+        + metric_row("📋 Profile Completion Rate", f"{profile_completion_rate}%", f"({completed_profiles}/{total_profiles})")
+        + metric_row("🏆 Proof Entries Yesterday", str(new_proofs_yesterday))
         + metric_row("📦 Total Proof Entries", f"{total_proofs:,}")
         + metric_row("📈 New Proofs (7d)", str(new_proofs_7d))
         + na_row("⚡ Activation Rate")
@@ -213,13 +156,13 @@ try:
 
             <!-- Header -->
             <div style="background:#1a1a2e;padding:28px 24px;border-radius:8px 8px 0 0;text-align:center;">
-                <h1 style="margin:0;color:white;font-size:22px;">📊 Daily CEO Metrics</h1>
-                <p style="margin:8px 0 0;color:#a0aec0;font-size:14px;">Bitcoin Culture Hub &nbsp;·&nbsp; {today.strftime('%B %d, %Y')}</p>
+                <h1 style="margin:0;color:white;font-size:22px;">⚡ Daily CEO Metrics</h1>
+                <p style="margin:8px 0 0;color:#a0aec0;font-size:14px;">Bitcoin Culture Hub (BCH) &nbsp;·&nbsp; {today.strftime('%B %d, %Y')}</p>
             </div>
 
             <!-- Body -->
             <div style="background:#f3f4f6;padding:24px 0;">
-                {section("1️⃣ CEO Snapshot", "#2563eb", snapshot_rows)}
+                {section("1️⃣ BCH Snapshot", "#2563eb", snapshot_rows)}
                 {section("2️⃣ BCH Network Health", "#16a34a", network_rows)}
                 {section("3️⃣ BCH Opportunity Engine", "#9333ea", opportunity_rows)}
             </div>
@@ -238,17 +181,19 @@ try:
     send_email(subject, html)
 
 except Exception as e:
-    logging.error(f"❌ CEO metrics failed: {e}")
+    logging.error(f"❌ BCH CEO metrics failed: {e}")
+    import traceback
+    logging.error(traceback.format_exc())
     try:
         send_email(
-            f"❌ CEO Metrics Failed — {datetime.utcnow().date()}",
-            f"<p>The CEO metrics script failed with the following error:</p><pre>{str(e)}</pre>"
+            f"❌ BCH CEO Metrics Failed — {datetime.utcnow().date()}",
+            f"<p>The BCH CEO metrics script failed with the following error:</p><pre>{str(e)}</pre>"
         )
     except Exception:
         pass
 
 finally:
     try:
-        duck_con.close()
+        bch_con.close()
     except Exception:
         pass
