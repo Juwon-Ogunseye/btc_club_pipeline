@@ -103,6 +103,147 @@ btc-data-hub/
 
 ---
 
+## Pipeline Flow
+
+```mermaid
+flowchart TD
+    subgraph Sources["📦 Data Sources"]
+        A[(BCH PostgreSQL\nbtc-opten-ps\nAWS RDS)]
+        B[(BFC PostgreSQL\nbtc-ecommerce\nAWS RDS)]
+    end
+
+    subgraph Orchestration["⚙️ Orchestration"]
+        C[GitHub Actions\nDaily Cron Jobs]
+    end
+
+    subgraph ETL["🔄 ETL Layer"]
+        D[BCH ETL Pipeline\nPython + SQLAlchemy\n12:35 AM UTC]
+        E[BFC ETL Pipeline\nPython + psycopg2\n1:00 AM UTC]
+    end
+
+    subgraph Warehouse["🏠 Analytics Warehouse"]
+        F[(MotherDuck\nbtc_analytics DB\nDuckDB Cloud)]
+        G[(MotherDuck\necommerce DB\nDuckDB Cloud)]
+    end
+
+    subgraph Reporting["📊 Reporting & Visualization"]
+        H[Metabase\nAWS EC2\nLive Dashboards]
+        I[BCH CEO Email\nAWS SES\n1:05 AM UTC]
+        J[BFC CEO Email\nAWS SES\n1:15 AM UTC]
+    end
+
+    subgraph Alerts["🔔 Alerts"]
+        K[Discord Webhook\nPipeline Status]
+    end
+
+    C -->|Triggers| D
+    C -->|Triggers| E
+    A -->|SSL/TLS| D
+    B -->|SSL/TLS| E
+    D -->|Incremental Load| F
+    E -->|Incremental Load| G
+    F --> H
+    G --> H
+    F --> I
+    G --> J
+    D -->|Run Summary| K
+    E -->|Run Summary| K
+```
+
+---
+
+## BCH Pipeline Detail
+
+```mermaid
+flowchart LR
+    subgraph Source["BCH Source"]
+        A[(PostgreSQL\nbtc-opten-ps)]
+    end
+
+    subgraph Tables["Tables Synced"]
+        direction TB
+        T1[user]
+        T2[profile]
+        T3[organization]
+        T4[opportunity]
+        T5[application]
+        T6[proof]
+        T7[organizationmember]
+        T8[orginvite]
+        T9[+ more]
+    end
+
+    subgraph Process["ETL Process"]
+        E1[Extract\nSQLAlchemy]
+        E2[Transform\npandas]
+        E3[Load\nDuckDB]
+    end
+
+    subgraph Output["Output"]
+        W[(MotherDuck\nbtc_analytics)]
+        M[Metabase\nDashboards]
+        R[CEO Email\nAWS SES]
+        D[Discord\nAlert]
+    end
+
+    A --> Tables
+    Tables --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> W
+    W --> M
+    W --> R
+    E3 --> D
+```
+
+---
+
+## BFC Pipeline Detail
+
+```mermaid
+flowchart LR
+    subgraph Source["BFC Source"]
+        A[(PostgreSQL\nbtc-ecommerce\nmedusa-bitcoin-card-backend)]
+    end
+
+    subgraph Tables["Tables Synced"]
+        direction TB
+        T1[product]
+        T2[customer]
+        T3[vendor]
+        T4[marketplace_order]
+        T5[marketplace_offer]
+        T6[payment]
+        T7[cart]
+        T8[image]
+        T9[+ 126 more]
+    end
+
+    subgraph Process["ETL Process"]
+        E1[Extract\npsycopg2]
+        E2[Transform\npandas + batch]
+        E3[Load\nDuckDB]
+    end
+
+    subgraph Output["Output"]
+        W[(MotherDuck\necommerce)]
+        M[Metabase\nDashboards]
+        R[CEO Email\nAWS SES]
+        D[Discord\nAlert]
+    end
+
+    A --> Tables
+    Tables --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> W
+    W --> M
+    W --> R
+    E3 --> D
+```
+
+---
+
 ## Key Features
 
 - **Incremental loading** — only new rows are inserted on each run, no full reloads
